@@ -59,7 +59,8 @@ app.get('/login', function(req, res) {
   res.cookie(stateKey, state);
 
   // your application requests authorization
-  var scope = 'user-read-private user-read-email playlist-modify-public playlist-modify-private playlist-read-private user-top-read';
+  var scope = 'user-read-private user-read-email playlist-modify-public ' +
+  'playlist-modify-private playlist-read-private user-top-read streaming';
   res.redirect('https://accounts.spotify.com/authorize?' +
     querystring.stringify({
       response_type: 'code',
@@ -143,7 +144,7 @@ app.get('/make-playlist', function(req, res) {
     url: 'https://api.spotify.com/v1/users/' + user_id + '/playlists',
     headers: { 'Authorization': 'Bearer ' + spotifyApi.getAccessToken() + ', Content-Type: application/json' },
     body: {
-      name: "Test Playlist Refactor"
+      name: "Test Playlist [Name]"
     },
     json: true
   }
@@ -167,7 +168,7 @@ app.get('/make-playlist', function(req, res) {
       function(artists) {
     options = {
       url: 'https://api.spotify.com/v1/recommendations?seed_artists=' + 
-      artists.slice(0, 5).toString() + '&max_danceability=0.25&min_popularity=50&market=US',
+      artists.slice(0, 5).toString() + '&min_danceability=0.8&min_valence=0.6&min_popularity=50&market=US',
       headers: { 'Authorization': 'Bearer ' + spotifyApi.getAccessToken() },
       json: true
     }
@@ -185,7 +186,10 @@ app.get('/make-playlist', function(req, res) {
 
       request.post(options, function(error, response, body) {
         console.log(body);
-
+        res.redirect('/#' +
+          querystring.stringify({
+            playlist_id: playlist_id
+          }));
     })})
   });
 })});
