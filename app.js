@@ -10,16 +10,19 @@
 var express = require('express'); // Express web server framework
 var request = require('request'); // "Request" library
 const fs = require("fs");
+const http = require("http");
+const https = require("https");
 var cors = require('cors');
 var querystring = require('querystring');
 var cookieParser = require('cookie-parser');
 const bodyParser = require("body-parser");
+let conf = require('/home/ubuntu/weatherfy/config.json');
 
 const env = process.env.NODE_ENV ? process.env.NODE_ENV : "dev";
 
-var client_id = 'CLIENT_ID'; // Your client id
-var client_secret = 'CLIENT_SECRET'; // Your secret
-var redirect_uri = 'http://localhost:8888/callback'; // Your redirect uri
+var client_id = conf.client_id; // Your client id
+var client_secret = conf.client_secret; // Your secret
+var redirect_uri = env === "production" ? conf.prod_redirect_uri : conf.dev_redirect_uri; // Your redirect uri
 var user_id;
 
 var SpotifyWebApi = require('spotify-web-api-node');
@@ -223,9 +226,8 @@ app.get('/refresh_token', function(req, res) {
 
 if (env === "production") {
   const options = {
-    key: fs.readFileSync(keyPath),
-    cert: fs.readFileSync(certPath),
-    ca: fs.readFileSync(caPath)
+    key: fs.readFileSync(conf.keyPath),
+    cert: fs.readFileSync(conf.certPath)
   };
   // Listen for HTTPS requests
   https.createServer(options, app).listen(443, () => {
