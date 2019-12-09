@@ -9,10 +9,13 @@
 
 var express = require('express'); // Express web server framework
 var request = require('request'); // "Request" library
+const fs = require("fs");
 var cors = require('cors');
 var querystring = require('querystring');
 var cookieParser = require('cookie-parser');
 const bodyParser = require("body-parser");
+
+const env = process.env.NODE_ENV ? process.env.NODE_ENV : "dev";
 
 var client_id = 'CLIENT_ID'; // Your client id
 var client_secret = 'CLIENT_SECRET'; // Your secret
@@ -218,5 +221,28 @@ app.get('/refresh_token', function(req, res) {
   });
 });
 
-console.log('Listening on 8888');
-app.listen(8888);
+if (env === "production") {
+  const options = {
+    key: fs.readFileSync(keyPath),
+    cert: fs.readFileSync(certPath),
+    ca: fs.readFileSync(caPath)
+  };
+  // Listen for HTTPS requests
+  https.createServer(options, app).listen(443, () => {
+    console.log(`Secure App Listening On: 443`);
+  });
+  // Redirect HTTP to HTTPS
+  http
+    .createServer((req, res) => {
+      const location = `https://${req.headers.host}${req.url}`;
+      console.log(`Redirect to: ${location}`);
+      res.writeHead(302, { Location: location });
+      res.end();
+    })
+    .listen(80, () => {
+      console.log(`App listening on 80 for HTTPS redirect`);
+    });
+} else {
+  console.log('Listening on 8888');
+  app.listen(8888);
+}
