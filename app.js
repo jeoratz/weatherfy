@@ -17,7 +17,6 @@ var querystring = require('querystring');
 var cookieParser = require('cookie-parser');
 const bodyParser = require("body-parser");
 var conf = require('./config.json');
-var conf = require('C:\\Users\\jenna\\OneDrive\\Documents\\Vanderbilt\\Fall 2019\\CS 4287\\weatherfy\\config.json');
 
 const env = process.env.NODE_ENV ? process.env.NODE_ENV : "dev";
 
