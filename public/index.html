@@ -25,7 +25,7 @@
       <div id="loggedin">
         <h1>Click Below to Generate a Playlist!</h1>
         <div id="make-playlist">
-                <a href="/make-playlist" class="btn btn-default">Make me a playlist!</a>
+          <a href="/make-playlist" class="btn btn-default">Make me a playlist!</a>
         </div>
       </div>
       <div id="playlist">
@@ -56,7 +56,8 @@
         var access_token = params.access_token,
             refresh_token = params.refresh_token,
             error = params.error,
-            playlist_id = params.playlist_id;
+            playlist_id = params.playlist_id,
+            weather = params.weather;
 
         if (error) {
           alert('There was an error during the authentication');
@@ -69,7 +70,11 @@
                   'Authorization': 'Bearer ' + access_token
                 },
                 success: function(response) {
-                  console.log(response.id);
+
+                  $.ajax({
+                    type: "POST",
+                    url: '/get-weather'
+                  });
 
                   $('#login').hide();
                   $('#loggedin').show();

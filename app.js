@@ -16,7 +16,8 @@ var cors = require('cors');
 var querystring = require('querystring');
 var cookieParser = require('cookie-parser');
 const bodyParser = require("body-parser");
-let conf = require('/home/ubuntu/weatherfy/config.json');
+var conf = require('./config.json');
+var conf = require('C:\\Users\\jenna\\OneDrive\\Documents\\Vanderbilt\\Fall 2019\\CS 4287\\weatherfy\\config.json');
 
 const env = process.env.NODE_ENV ? process.env.NODE_ENV : "dev";
 
@@ -24,6 +25,7 @@ var client_id = conf.client_id; // Your client id
 var client_secret = conf.client_secret; // Your secret
 var redirect_uri = env === "production" ? conf.prod_redirect_uri : conf.dev_redirect_uri; // Your redirect uri
 var user_id;
+var weather;
 
 var SpotifyWebApi = require('spotify-web-api-node');
 
@@ -48,6 +50,34 @@ var generateRandomString = function(length) {
   }
   return text;
 };
+
+function waitForElement(){
+  if(typeof weather !== "undefined"){
+      //variable exists, do what you want
+  }
+  else{
+      setTimeout(waitForElement, 250);
+  }
+}
+
+function mapWeatherToSpotify() {
+  console.log(weather); 
+  var energy = ["valence", "danceability", "energy"];
+  var params = {
+    min_valence: 0,
+    min_danceability: 0,
+    min_energy: 0,
+    max_valence: 0,
+    max_danceability: 0,
+    max_energy: 0
+  }
+  var score = weather.current.is_day === "no" ? 0.25 : 0.75;
+  score = weather.current.weather_code >= 300 || weather.current.weather_code === 230 ? score * 0.5 : score;
+  score = weather.current.weather_code < 300 && weather.current.weather_code !== 113 && weather.current.weather_code !== 116 ? score * 0.75 : score;
+
+  energy.forEach(feature => { params["min_" + feature] = score - 0.20; params["max_" + feature] = score + 0.20 });
+  return params;
+}
 
 var stateKey = 'spotify_auth_state';
 
@@ -145,12 +175,24 @@ app.get('/callback', function(req, res) {
   }
 });
 
+app.post('/get-weather', function(req, res) {
+  var options = {
+    url: 'http://api.weatherstack.com/current?access_key=' + conf.weather_key + "&query=fetch:ip",
+    headers: 'Content-Type: application/json'
+  }
+
+  request.get(options, function(error, response, body) {
+   weather = JSON.parse(body);
+   res.send({ 'weather' : body }) 
+  })
+});
+
 app.get('/make-playlist', function(req, res) {
   var options = {
     url: 'https://api.spotify.com/v1/users/' + user_id + '/playlists',
     headers: { 'Authorization': 'Bearer ' + spotifyApi.getAccessToken() + ', Content-Type: application/json' },
     body: {
-      name: "Test Playlist [Name]"
+      name: "Weatherfied"
     },
     json: true
   }
@@ -172,31 +214,32 @@ app.get('/make-playlist', function(req, res) {
       } 
     ).then(
       function(artists) {
-    options = {
-      url: 'https://api.spotify.com/v1/recommendations?seed_artists=' + 
-      artists.slice(0, 5).toString() + '&min_danceability=0.8&min_valence=0.6&min_popularity=50&market=US',
-      headers: { 'Authorization': 'Bearer ' + spotifyApi.getAccessToken() },
-      json: true
-    }
+        options = {
+          url: 'https://api.spotify.com/v1/recommendations?seed_artists=' + 
+          artists.slice(0, 5).toString() + "&" + 
+            querystring.stringify(mapWeatherToSpotify()) +'&min_popularity=30&market=US',
+          headers: { 'Authorization': 'Bearer ' + spotifyApi.getAccessToken() },
+          json: true
+        }
 
-    request.get(options, function(error, response, body) {
-      console.log(body);
-      options = {
-        url: 'https://api.spotify.com/v1/playlists/' + playlist_id + '/tracks',
-        headers: { 'Authorization': 'Bearer ' + spotifyApi.getAccessToken() + ', Content-Type: application/json' },
-        body: {
-          uris: body.tracks.map(track => track.uri)
-        },
-        json: true
-      }
+        request.get(options, function(error, response, body) {
+          console.log(body);
+          options = {
+            url: 'https://api.spotify.com/v1/playlists/' + playlist_id + '/tracks',
+            headers: { 'Authorization': 'Bearer ' + spotifyApi.getAccessToken() + ', Content-Type: application/json' },
+            body: {
+              uris: body.tracks.map(track => track.uri)
+            },
+            json: true
+          }
 
-      request.post(options, function(error, response, body) {
-        console.log(body);
-        res.redirect('/#' +
-          querystring.stringify({
-            playlist_id: playlist_id
-          }));
-    })})
+        request.post(options, function(error, response, body) {
+          console.log(body);
+          res.redirect('/#' +
+            querystring.stringify({
+              playlist_id: playlist_id
+            }));
+      })})
   });
 })});
 
